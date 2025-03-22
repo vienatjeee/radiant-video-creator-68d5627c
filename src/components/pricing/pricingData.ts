@@ -1,7 +1,7 @@
 
 import { User, Zap, Shield } from "lucide-react";
-import React from "react";
 import { PricingPlan } from "./PricingCard";
+import React from "react";
 
 // Define the pricing plans
 export const pricingPlans: PricingPlan[] = [
@@ -22,7 +22,7 @@ export const pricingPlans: PricingPlan[] = [
     popular: false,
     buttonText: "Get Started",
     tier: "free",
-    icon: <User className="h-5 w-5 text-muted-foreground" />
+    icon: React.createElement(User, { className: "h-5 w-5 text-muted-foreground" })
   },
   {
     name: "Pro",
@@ -42,7 +42,7 @@ export const pricingPlans: PricingPlan[] = [
     popular: true,
     buttonText: "Upgrade Now",
     tier: "pro",
-    icon: <Zap className="h-5 w-5 text-amber-500" />
+    icon: React.createElement(Zap, { className: "h-5 w-5 text-amber-500" })
   },
   {
     name: "Enterprise",
@@ -62,7 +62,7 @@ export const pricingPlans: PricingPlan[] = [
     popular: false,
     buttonText: "Contact Sales",
     tier: "enterprise",
-    icon: <Shield className="h-5 w-5 text-indigo-500" />
+    icon: React.createElement(Shield, { className: "h-5 w-5 text-indigo-500" })
   }
 ];
 

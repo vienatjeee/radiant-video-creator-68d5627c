@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import VideoPreview from "./VideoPreview";
 import PromptTab from "./tabs/PromptTab";
 import MediaTab from "./tabs/MediaTab";
@@ -28,6 +29,16 @@ const VideoEditor = () => {
   ];
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data && data.session) {
+        console.log("Supabase connected and user authenticated");
+      } else {
+        console.log("Supabase connected but user not authenticated");
+      }
+    }).catch(error => {
+      console.error("Supabase connection issue:", error);
+    });
+    
     return () => {
       if (generatedVideoUrl && generatedVideoUrl.startsWith('blob:')) {
         URL.revokeObjectURL(generatedVideoUrl);

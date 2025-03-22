@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Download, Pause, Play, Video, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,9 +27,19 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reset error state when video URL changes
+  useEffect(() => {
+    if (generatedVideoUrl) {
+      setError(null);
+      setIsLoading(true);
+    }
+  }, [generatedVideoUrl]);
+
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const target = e.target as HTMLVideoElement;
+    console.error("Video error:", target.error);
     setError(`Failed to load video: ${target.error?.message || 'Unknown error'}`);
+    setIsLoading(false);
     toast.error("Video playback error", {
       description: "There was a problem playing your video."
     });
@@ -43,12 +53,15 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   const handleVideoLoaded = () => {
     setIsLoading(false);
     setError(null);
+    console.log("Video loaded successfully");
   };
 
   const retryVideoLoad = () => {
     if (!videoRef.current) return;
     
     setError(null);
+    setIsLoading(true);
+    
     // Reset the video source to trigger a reload
     const currentSrc = videoRef.current.src;
     videoRef.current.src = "";
@@ -66,13 +79,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         <h3 className="font-medium">Preview</h3>
         
         <div className="flex items-center gap-2">
-          {videoGenerated && (
+          {videoGenerated && !isLoading && (
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
           )}
-          {videoGenerated && !error && (
+          {videoGenerated && !error && !isLoading && (
             <Button variant="outline" size="sm" onClick={togglePlayPause}>
               {isPlaying ? (
                 <><Pause className="h-4 w-4 mr-2" />Pause</>
@@ -93,18 +106,21 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       <div className="relative flex-1 flex items-center justify-center bg-black/90">
         {videoGenerated ? (
           <>
-            <video 
-              ref={videoRef}
-              src={generatedVideoUrl}
-              className={`w-full h-full object-contain ${error ? 'hidden' : ''}`}
-              controls={false}
-              onError={handleVideoError}
-              onLoadStart={handleVideoLoading}
-              onLoadedData={handleVideoLoaded}
-              onEnded={() => isPlaying && togglePlayPause()}
-              onPause={() => isPlaying && togglePlayPause()}
-              onPlay={() => !isPlaying && togglePlayPause()}
-            />
+            {generatedVideoUrl && (
+              <video 
+                ref={videoRef}
+                src={generatedVideoUrl}
+                className={`w-full h-full object-contain ${error ? 'hidden' : ''}`}
+                controls={false}
+                preload="auto"
+                onError={handleVideoError}
+                onLoadStart={handleVideoLoading}
+                onLoadedData={handleVideoLoaded}
+                onEnded={() => isPlaying && togglePlayPause()}
+                onPause={() => isPlaying && togglePlayPause()}
+                onPlay={() => !isPlaying && togglePlayPause()}
+              />
+            )}
             
             {error && (
               <div className="text-center p-6">

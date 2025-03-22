@@ -2,11 +2,12 @@
 import React, { useCallback, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Music, Image, Upload, X } from "lucide-react";
+import { Music, Image, Upload, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface MediaTabProps {
-  onMediaUpload?: (file: File) => void;
+  onMediaUpload?: (file: File | null) => void;
   selectedMusic: string;
   setSelectedMusic: (genre: string) => void;
 }
@@ -18,6 +19,7 @@ const MediaTab: React.FC<MediaTabProps> = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const musicGenres = [
     "Ambient", "Electronic", "Cinematic", 
@@ -53,9 +55,50 @@ const MediaTab: React.FC<MediaTabProps> = ({
     }
   }, []);
 
+  const validateFile = (file: File): boolean => {
+    setFileError(null);
+    
+    // Check if it's a video file
+    if (file.type.startsWith('video/')) {
+      // Check for supported video formats
+      const supportedFormats = ['video/mp4', 'video/webm', 'video/ogg'];
+      if (!supportedFormats.includes(file.type)) {
+        setFileError(`Unsupported video format: ${file.type}. Please use MP4, WebM, or Ogg.`);
+        return false;
+      }
+      
+      // Check file size (limit to 100MB for example)
+      if (file.size > 100 * 1024 * 1024) {
+        setFileError("Video file is too large. Maximum size is 100MB.");
+        return false;
+      }
+    } 
+    // Check if it's an image file
+    else if (file.type.startsWith('image/')) {
+      // Check for supported image formats
+      const supportedFormats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!supportedFormats.includes(file.type)) {
+        setFileError(`Unsupported image format: ${file.type}. Please use JPEG, PNG, GIF, or WebP.`);
+        return false;
+      }
+      
+      // Check file size (limit to 10MB for example)
+      if (file.size > 10 * 1024 * 1024) {
+        setFileError("Image file is too large. Maximum size is 10MB.");
+        return false;
+      }
+    } 
+    // Not an accepted file type
+    else {
+      setFileError("Please upload a video or image file.");
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleFile = useCallback((file: File) => {
-    // Accept only video and image files
-    if (file.type.startsWith('video/') || file.type.startsWith('image/')) {
+    if (validateFile(file)) {
       setUploadedFile(file);
       if (onMediaUpload) {
         onMediaUpload(file);
@@ -64,17 +107,18 @@ const MediaTab: React.FC<MediaTabProps> = ({
         description: `File "${file.name}" is ready to use`
       });
     } else {
-      toast.error("Invalid file type", {
-        description: "Please upload a video or image file"
+      toast.error("Invalid file", {
+        description: fileError || "The file could not be uploaded"
       });
     }
-  }, [onMediaUpload]);
+  }, [onMediaUpload, fileError]);
 
   const removeUploadedFile = useCallback(() => {
     setUploadedFile(null);
+    setFileError(null);
     // If we want to notify the parent that the file was removed
     if (onMediaUpload) {
-      onMediaUpload(null as unknown as File);
+      onMediaUpload(null);
     }
   }, [onMediaUpload]);
 
@@ -102,6 +146,15 @@ const MediaTab: React.FC<MediaTabProps> = ({
       
       <div>
         <Label>Upload media (optional)</Label>
+        {fileError && (
+          <Alert variant="destructive" className="my-2 bg-destructive/10 border border-destructive">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="ml-2 text-sm">
+              {fileError}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {!uploadedFile ? (
           <div 
             className={`mt-1.5 border-2 ${dragActive ? "border-primary border-solid" : "border-dashed"} 
@@ -117,6 +170,9 @@ const MediaTab: React.FC<MediaTabProps> = ({
               <p className="text-sm text-muted-foreground mb-2">
                 Drag and drop or click to upload
               </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Supported formats: MP4, WebM, Ogg, JPEG, PNG, GIF, WebP
+              </p>
               <label htmlFor="file-upload">
                 <Button variant="outline" size="sm" className="cursor-pointer" asChild>
                   <span>Browse files</span>
@@ -124,7 +180,7 @@ const MediaTab: React.FC<MediaTabProps> = ({
                 <input
                   id="file-upload"
                   type="file"
-                  accept="video/*,image/*"
+                  accept="video/mp4,video/webm,video/ogg,image/jpeg,image/png,image/gif,image/webp"
                   className="hidden"
                   onChange={handleChange}
                 />
@@ -135,14 +191,21 @@ const MediaTab: React.FC<MediaTabProps> = ({
           <div className="mt-1.5 rounded-lg border border-border bg-background/50 p-3 flex items-center justify-between">
             <div className="flex items-center gap-2 overflow-hidden">
               {uploadedFile.type.startsWith('video/') ? (
-                <video className="h-10 w-10 object-cover rounded bg-black" src={URL.createObjectURL(uploadedFile)} />
+                <div className="h-10 w-10 flex items-center justify-center bg-black/80 rounded">
+                  <Video className="h-5 w-5 text-white/80" />
+                </div>
               ) : (
-                <img className="h-10 w-10 object-cover rounded" src={URL.createObjectURL(uploadedFile)} alt="Uploaded" />
+                <img 
+                  className="h-10 w-10 object-cover rounded" 
+                  src={URL.createObjectURL(uploadedFile)} 
+                  alt="Uploaded" 
+                  onError={() => setFileError("Failed to preview image")}
+                />
               )}
               <div className="truncate">
                 <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB
+                  {uploadedFile.type} • {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </p>
               </div>
             </div>

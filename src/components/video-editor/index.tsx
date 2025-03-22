@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import VideoPreview from "./VideoPreview";
 import PromptTab from "./tabs/PromptTab";
@@ -18,20 +18,40 @@ const VideoEditor = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState("Ambient");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Sample video URLs for demo purposes
   const sampleVideos = [
-    "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
-    "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-    "https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-coast-of-a-greek-city-2413-large.mp4"
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
   ];
-  
-  const [generatedVideoUrl, setGeneratedVideoUrl] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (generatedVideoUrl && generatedVideoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(generatedVideoUrl);
+      }
+    };
+  }, [generatedVideoUrl]);
   
   const handleMediaUpload = useCallback((file: File | null) => {
+    if (generatedVideoUrl && generatedVideoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(generatedVideoUrl);
+    }
+    
     setMediaFile(file);
-  }, []);
+    
+    if (file && videoGenerated) {
+      try {
+        const newUrl = URL.createObjectURL(file);
+        setGeneratedVideoUrl(newUrl);
+      } catch (err) {
+        console.error("Error creating object URL:", err);
+        toast.error("Failed to process uploaded media");
+      }
+    }
+  }, [generatedVideoUrl, videoGenerated]);
 
   const handleGenerate = () => {
     if (!prompt.trim()) {
@@ -39,56 +59,94 @@ const VideoEditor = () => {
       return;
     }
 
+    if (generatedVideoUrl && generatedVideoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(generatedVideoUrl);
+    }
+
     setIsGenerating(true);
+    setIsPlaying(false);
     
-    // Simulate video generation with the media file if available
     setTimeout(() => {
-      let videoUrl = "";
-      
-      if (mediaFile && mediaFile.type.startsWith('video/')) {
-        // If a video was uploaded, use that
-        videoUrl = URL.createObjectURL(mediaFile);
-      } else {
-        // Otherwise, use a sample video
-        videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+      try {
+        let videoUrl = "";
+        
+        if (mediaFile) {
+          if (mediaFile.type.startsWith('video/')) {
+            videoUrl = URL.createObjectURL(mediaFile);
+          } else if (mediaFile.type.startsWith('image/')) {
+            videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+          }
+        } else {
+          videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+        }
+        
+        setGeneratedVideoUrl(videoUrl);
+        setIsGenerating(false);
+        setVideoGenerated(true);
+        toast.success("Your video has been generated successfully!");
+      } catch (err) {
+        setIsGenerating(false);
+        toast.error("Failed to generate video", {
+          description: err instanceof Error ? err.message : "Unknown error occurred"
+        });
       }
-      
-      setGeneratedVideoUrl(videoUrl);
-      setIsGenerating(false);
-      setVideoGenerated(true);
-      toast.success("Your video has been generated successfully!");
     }, 3000);
   };
   
   const togglePlayPause = () => {
     if (!videoRef.current) return;
     
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
+    try {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(error => {
+              console.error("Playback error:", error);
+              setIsPlaying(false);
+              toast.error("Couldn't play video", {
+                description: "There was a problem with the video playback."
+              });
+            });
+        }
+      }
+    } catch (err) {
+      console.error("Toggle play/pause error:", err);
+      setIsPlaying(false);
+      toast.error("Playback control error", {
+        description: err instanceof Error ? err.message : "Unknown error occurred"
+      });
     }
-    
-    setIsPlaying(!isPlaying);
   };
   
   const handleDownload = () => {
     if (!generatedVideoUrl) return;
     
-    // Create a temporary anchor element to trigger download
-    const a = document.createElement('a');
-    a.href = generatedVideoUrl;
-    a.download = `AI-generated-video-${Date.now()}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    toast.success("Video download started!");
+    try {
+      const a = document.createElement('a');
+      a.href = generatedVideoUrl;
+      a.download = `AI-generated-video-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success("Video download started!");
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Download failed", {
+        description: err instanceof Error ? err.message : "Could not download the video."
+      });
+    }
   };
   
   return (
     <div className="flex flex-col lg:flex-row h-full w-full gap-6">
-      {/* Editor Panel */}
       <div className="w-full lg:w-1/3 flex flex-col bg-white/50 backdrop-blur-md rounded-2xl border border-border shadow-sm">
         <Tabs value={tab} onValueChange={setTab} className="w-full">
           <div className="p-4 border-b border-border">
@@ -161,7 +219,6 @@ const VideoEditor = () => {
         </Tabs>
       </div>
       
-      {/* Preview Panel */}
       <VideoPreview 
         videoGenerated={videoGenerated}
         isGenerating={isGenerating}

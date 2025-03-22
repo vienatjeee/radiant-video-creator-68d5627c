@@ -8,6 +8,8 @@ interface User {
   name: string;
   role: 'user' | 'admin';
   subscription: 'free' | 'pro' | 'enterprise';
+  billingCycle?: 'monthly' | 'yearly';
+  nextBillingDate?: string;
 }
 
 interface AuthContextType {
@@ -16,7 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
-  updateSubscription: (tier: string) => void;
+  updateSubscription: (tier: string, billingCycle?: 'monthly' | 'yearly') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,7 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: 'vienna@example.com',
             name: 'Vienna Wierks',
             role: 'admin',
-            subscription: 'enterprise'
+            subscription: 'enterprise',
+            billingCycle: 'yearly',
+            nextBillingDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
           };
         } else {
           // Regular user
@@ -144,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateSubscription = (tier: string) => {
+  const updateSubscription = (tier: string, billingCycle: 'monthly' | 'yearly' = 'monthly') => {
     if (!user) return;
     
     const validTiers = ['free', 'pro', 'enterprise'];
@@ -153,10 +157,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
+    // Calculate next billing date
+    const nextBillingDate = new Date();
+    if (billingCycle === 'monthly') {
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    } else {
+      nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+    }
+    
     // Update the user object with the new subscription
     const updatedUser = {
       ...user,
-      subscription: tier as 'free' | 'pro' | 'enterprise'
+      subscription: tier as 'free' | 'pro' | 'enterprise',
+      billingCycle,
+      nextBillingDate: nextBillingDate.toISOString().split('T')[0] // Format as YYYY-MM-DD
     };
     
     // Update localStorage and state

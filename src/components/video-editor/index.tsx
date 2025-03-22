@@ -41,7 +41,7 @@ const VideoEditor = () => {
     generateFrames
   } = useVideoGeneration();
   
-  // Check if the OpenAI API key is configured
+  // Check if the Replicate API key is configured
   const checkApiKeyConfiguration = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-video-frames', {
@@ -50,7 +50,7 @@ const VideoEditor = () => {
       
       if (error || (data && data.error)) {
         console.warn("API Key configuration issue:", error || data.error);
-        toast.warning("OpenAI API key may not be configured", {
+        toast.warning("Replicate API key may not be configured", {
           description: "Frame generation might not work correctly. Contact the administrator.",
           duration: 5000,
         });

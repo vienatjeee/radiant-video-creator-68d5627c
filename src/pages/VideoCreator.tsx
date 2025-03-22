@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import VideoEditor from "@/components/video-editor";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ExternalLink, Heart, DollarSign, Coffee } from "lucide-react";
 import { toast } from "sonner";
 

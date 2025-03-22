@@ -86,6 +86,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendSignupNotificationEmail = async (name: string, email: string) => {
+    try {
+      const recipientEmail = 'smartshift.com@gmail.com';
+      const subject = 'New User Signup Notification';
+      const body = `
+        A new user has signed up for your application:
+        
+        Name: ${name}
+        Email: ${email}
+        Date: ${new Date().toLocaleString()}
+      `;
+      
+      // Create a mailto link
+      const mailtoLink = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
+      // Open the default mail client
+      window.open(mailtoLink, '_blank');
+      
+      console.log('Signup notification sent to:', recipientEmail);
+    } catch (error) {
+      console.error('Failed to send signup notification:', error);
+    }
+  };
+
   const signup = async (email: string, password: string, name: string) => {
     try {
       setIsLoading(true);
@@ -99,6 +123,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         localStorage.setItem('user', JSON.stringify(newUser));
         setUser(newUser);
+        
+        // Send email notification
+        await sendSignupNotificationEmail(name, email);
+        
         toast.success('Account created successfully');
         return;
       }

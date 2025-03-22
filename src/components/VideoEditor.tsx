@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Wand2, Play, Download, Settings, Image, Music, Video, Sparkles, LayoutGrid, Layers, Type } from "lucide-react";
+import { Wand2, Play, Download, Settings, Image, Music, Video, Sparkles, LayoutGrid, Layers, Type, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -17,6 +17,18 @@ const VideoEditor = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [tab, setTab] = useState("prompt");
   const [videoGenerated, setVideoGenerated] = useState(false);
+  const [duration, setDuration] = useState(15);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Sample video URLs for demo purposes
+  const sampleVideos = [
+    "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
+    "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
+    "https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-the-coast-of-a-greek-city-2413-large.mp4"
+  ];
+  
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState("");
   
   const handleGenerate = () => {
     if (!prompt.trim()) {
@@ -28,10 +40,39 @@ const VideoEditor = () => {
     
     // Simulate video generation
     setTimeout(() => {
+      // Select a random sample video for demonstration
+      const randomVideo = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+      setGeneratedVideoUrl(randomVideo);
       setIsGenerating(false);
       setVideoGenerated(true);
       toast.success("Your video has been generated successfully!");
     }, 3000);
+  };
+  
+  const togglePlayPause = () => {
+    if (!videoRef.current) return;
+    
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    
+    setIsPlaying(!isPlaying);
+  };
+  
+  const handleDownload = () => {
+    if (!generatedVideoUrl) return;
+    
+    // Create a temporary anchor element to trigger download
+    const a = document.createElement('a');
+    a.href = generatedVideoUrl;
+    a.download = `AI-generated-video-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast.success("Video download started!");
   };
   
   return (
@@ -91,16 +132,22 @@ const VideoEditor = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="duration">Duration</Label>
+                  <Label htmlFor="duration">Duration (up to 10 minutes)</Label>
                   <div className="flex items-center gap-4 mt-1.5">
                     <Slider
                       id="duration"
                       defaultValue={[15]}
-                      max={60}
-                      step={5}
+                      value={[duration]}
+                      max={600}
+                      step={15}
                       className="flex-1"
+                      onValueChange={(value) => setDuration(value[0])}
                     />
-                    <span className="text-sm font-medium w-12">15s</span>
+                    <span className="text-sm font-medium w-16">
+                      {duration >= 60 ? 
+                        `${Math.floor(duration / 60)}m ${duration % 60}s` : 
+                        `${duration}s`}
+                    </span>
                   </div>
                 </div>
                 
@@ -272,15 +319,18 @@ const VideoEditor = () => {
           
           <div className="flex items-center gap-2">
             {videoGenerated && (
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
             )}
             {videoGenerated && (
-              <Button variant="outline" size="sm">
-                <Play className="h-4 w-4 mr-2" />
-                Play
+              <Button variant="outline" size="sm" onClick={togglePlayPause}>
+                {isPlaying ? (
+                  <><Pause className="h-4 w-4 mr-2" />Pause</>
+                ) : (
+                  <><Play className="h-4 w-4 mr-2" />Play</>
+                )}
               </Button>
             )}
           </div>
@@ -288,10 +338,14 @@ const VideoEditor = () => {
         
         <div className="relative flex-1 flex items-center justify-center bg-black/90">
           {videoGenerated ? (
-            <img 
-              src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80" 
-              alt="Generated video preview"
+            <video 
+              ref={videoRef}
+              src={generatedVideoUrl}
               className="w-full h-full object-contain"
+              controls={false}
+              onEnded={() => setIsPlaying(false)}
+              onPause={() => setIsPlaying(false)}
+              onPlay={() => setIsPlaying(true)}
             />
           ) : (
             <div className="text-center p-6">

@@ -1,161 +1,139 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { YoutubeIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-const SettingsTab: React.FC = () => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [youtubeTitle, setYoutubeTitle] = useState("");
-  const [youtubeDescription, setYoutubeDescription] = useState("");
-  const [youtubePrivacy, setYoutubePrivacy] = useState("unlisted");
-  const [dialogOpen, setDialogOpen] = useState(false);
+interface SettingsTabProps {
+  aspectRatio: string;
+  setAspectRatio: (ratio: string) => void;
+}
 
-  const handleYoutubeUpload = async () => {
-    if (!youtubeTitle) {
-      toast.error("Please provide a title for your YouTube video");
-      return;
-    }
-
-    setIsUploading(true);
-    
-    // Simulate upload process
-    setTimeout(() => {
-      setIsUploading(false);
-      setDialogOpen(false);
-      toast.success("Your video has been queued for upload to YouTube", {
-        description: "You'll receive a notification when the upload is complete."
-      });
-      
-      // Reset form
-      setYoutubeTitle("");
-      setYoutubeDescription("");
-    }, 3000);
-  };
-
+const SettingsTab: React.FC<SettingsTabProps> = ({
+  aspectRatio,
+  setAspectRatio
+}) => {
   return (
     <div className="space-y-6">
       <div>
-        <Label>Output format</Label>
-        <Select defaultValue="mp4">
-          <SelectTrigger className="mt-1.5">
-            <SelectValue placeholder="Select video format" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mp4">MP4</SelectItem>
-            <SelectItem value="mov">MOV</SelectItem>
-            <SelectItem value="webm">WebM</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label>Resolution</Label>
-        <Select defaultValue="1080p">
-          <SelectTrigger className="mt-1.5">
-            <SelectValue placeholder="Select resolution" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="720p">HD (720p)</SelectItem>
-            <SelectItem value="1080p">Full HD (1080p)</SelectItem>
-            <SelectItem value="4k">4K</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div>
-        <Label>Quality settings</Label>
-        <div className="mt-1.5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm">Quality</span>
-            <span className="text-sm font-medium">High</span>
-          </div>
-          <Slider defaultValue={[75]} max={100} step={25} />
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch id="auto-enhance" defaultChecked />
-        <Label htmlFor="auto-enhance">Auto-enhance video</Label>
-      </div>
-      
-      <div className="pt-2 border-t border-border">
-        <h3 className="text-sm font-medium mb-3">Share & Upload</h3>
+        <h3 className="text-lg font-medium mb-2">Video Settings</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Configure the basic settings for your video
+        </p>
         
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full">
-              <YoutubeIcon className="h-4 w-4 mr-2 text-red-500" />
-              Upload to YouTube
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Upload to YouTube</DialogTitle>
-            </DialogHeader>
-            
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="yt-title">Video Title</Label>
-                <Input 
-                  id="yt-title" 
-                  value={youtubeTitle} 
-                  onChange={(e) => setYoutubeTitle(e.target.value)} 
-                  placeholder="Enter video title"
-                  required
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="aspect-ratio" className="mb-2 block">
+              Aspect Ratio
+            </Label>
+            <RadioGroup
+              value={aspectRatio}
+              onValueChange={setAspectRatio}
+              className="grid grid-cols-3 gap-2"
+            >
+              <div>
+                <RadioGroupItem
+                  value="16:9"
+                  id="16:9"
+                  className="sr-only"
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="yt-description">Description</Label>
-                <Input 
-                  id="yt-description" 
-                  value={youtubeDescription} 
-                  onChange={(e) => setYoutubeDescription(e.target.value)}
-                  placeholder="Enter video description (optional)"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="yt-privacy">Privacy Setting</Label>
-                <Select 
-                  value={youtubePrivacy} 
-                  onValueChange={setYoutubePrivacy}
+                <Label
+                  htmlFor="16:9"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "16:9" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select privacy setting" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="private">Private</SelectItem>
-                    <SelectItem value="unlisted">Unlisted</SelectItem>
-                    <SelectItem value="public">Public</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <div className="w-16 h-9 bg-accent mb-2"></div>
+                  <span className="text-xs">16:9</span>
+                </Label>
               </div>
-            </div>
-            
-            <DialogFooter>
-              <Button 
-                type="submit" 
-                onClick={handleYoutubeUpload}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <span className="loader mr-2 h-4 w-4 border-2 border-current after:border-2 after:border-primary" />
-                    Uploading...
-                  </>
-                ) : "Upload Video"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              
+              <div>
+                <RadioGroupItem
+                  value="4:3"
+                  id="4:3"
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor="4:3"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "4:3" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <div className="w-12 h-9 bg-accent mb-2"></div>
+                  <span className="text-xs">4:3</span>
+                </Label>
+              </div>
+              
+              <div>
+                <RadioGroupItem
+                  value="1:1"
+                  id="1:1"
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor="1:1"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "1:1" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <div className="w-9 h-9 bg-accent mb-2"></div>
+                  <span className="text-xs">1:1</span>
+                </Label>
+              </div>
+              
+              <div>
+                <RadioGroupItem
+                  value="9:16"
+                  id="9:16"
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor="9:16"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "9:16" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <div className="w-7 h-12 bg-accent mb-2"></div>
+                  <span className="text-xs">9:16</span>
+                </Label>
+              </div>
+              
+              <div>
+                <RadioGroupItem
+                  value="1:2"
+                  id="1:2"
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor="1:2"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "1:2" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <div className="w-6 h-12 bg-accent mb-2"></div>
+                  <span className="text-xs">1:2</span>
+                </Label>
+              </div>
+              
+              <div>
+                <RadioGroupItem
+                  value="2:1"
+                  id="2:1"
+                  className="sr-only"
+                />
+                <Label
+                  htmlFor="2:1"
+                  className={`flex flex-col items-center justify-center border rounded-md p-2 cursor-pointer ${
+                    aspectRatio === "2:1" ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <div className="w-12 h-6 bg-accent mb-2"></div>
+                  <span className="text-xs">2:1</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
       </div>
     </div>
   );

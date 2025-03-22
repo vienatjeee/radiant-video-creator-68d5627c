@@ -13,6 +13,7 @@ interface VideoPreviewProps {
   isPlaying: boolean;
   togglePlayPause: () => void;
   handleDownload: () => void;
+  textOverlay?: { enabled: boolean; text: string };
 }
 
 const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -23,6 +24,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   isPlaying,
   togglePlayPause,
   handleDownload,
+  textOverlay = { enabled: false, text: "" }
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,7 +108,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       <div className="relative flex-1 flex items-center justify-center bg-black/90">
         {videoGenerated ? (
           <>
-            {generatedVideoUrl && (
+            <div className="relative w-full h-full">
               <video 
                 ref={videoRef}
                 src={generatedVideoUrl}
@@ -120,7 +122,16 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
                 onPause={() => isPlaying && togglePlayPause()}
                 onPlay={() => !isPlaying && togglePlayPause()}
               />
-            )}
+              
+              {/* Text overlay */}
+              {textOverlay?.enabled && textOverlay.text && !error && !isLoading && (
+                <div className="absolute bottom-8 left-0 right-0 text-center">
+                  <div className="inline-block bg-black/50 backdrop-blur-sm px-6 py-3 rounded-lg">
+                    <p className="text-white font-medium text-xl">{textOverlay.text}</p>
+                  </div>
+                </div>
+              )}
+            </div>
             
             {error && (
               <div className="text-center p-6">

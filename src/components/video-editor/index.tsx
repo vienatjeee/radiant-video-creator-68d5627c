@@ -17,12 +17,22 @@ const VideoEditor = () => {
     isPlaying,
     selectedMusic,
     setSelectedMusic,
+    isAnalyzing,
+    analyzedTags,
+    selectedStyle,
+    transitionEffect,
+    textOverlay,
+    aspectRatio,
     generatedVideoUrl,
     videoRef,
     handleMediaUpload,
     handleGenerate,
     togglePlayPause,
-    handleDownload
+    handleDownload,
+    handleStyleChange,
+    handleTransitionChange,
+    handleTextOverlayChange,
+    handleAspectRatioChange
   } = useVideoGeneration();
   
   return (
@@ -40,6 +50,13 @@ const VideoEditor = () => {
           onMediaUpload={handleMediaUpload}
           handleGenerate={handleGenerate}
           isGenerating={isGenerating}
+          isAnalyzing={isAnalyzing}
+          analyzedTags={analyzedTags}
+          aspectRatio={aspectRatio}
+          setAspectRatio={handleAspectRatioChange}
+          onStyleChange={handleStyleChange}
+          onTransitionChange={handleTransitionChange}
+          onTextOverlayChange={handleTextOverlayChange}
         />
       </div>
       
@@ -51,6 +68,7 @@ const VideoEditor = () => {
         isPlaying={isPlaying}
         togglePlayPause={togglePlayPause}
         handleDownload={handleDownload}
+        textOverlay={textOverlay}
       />
     </div>
   );

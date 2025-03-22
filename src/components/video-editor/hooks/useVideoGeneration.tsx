@@ -12,6 +12,12 @@ export const useVideoGeneration = () => {
   const [selectedMusic, setSelectedMusic] = useState("Ambient");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzedTags, setAnalyzedTags] = useState<string[]>([]);
+  const [selectedStyle, setSelectedStyle] = useState("Vibrant");
+  const [transitionEffect, setTransitionEffect] = useState("fade");
+  const [textOverlay, setTextOverlay] = useState({ enabled: false, text: "" });
+  const [aspectRatio, setAspectRatio] = useState("16:9");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const sampleVideos = [
@@ -38,27 +44,79 @@ export const useVideoGeneration = () => {
     };
   }, [generatedVideoUrl]);
   
+  const analyzeMediaContent = async (file: File) => {
+    if (!file) return;
+    
+    setIsAnalyzing(true);
+    
+    // Simulate AI analysis
+    setTimeout(() => {
+      let fakeTags: string[] = [];
+      
+      if (file.type.startsWith('image/')) {
+        // Fake image analysis results
+        fakeTags = ["person", "landscape", "nature", "outdoor", "daytime"];
+      } else if (file.type.startsWith('video/')) {
+        // Fake video analysis results
+        fakeTags = ["motion", "urban", "people", "vehicle", "building"];
+      }
+      
+      setAnalyzedTags(fakeTags);
+      setIsAnalyzing(false);
+      
+      toast.success("Content analysis complete", {
+        description: "We've detected key elements in your media that will be enhanced in the generated video."
+      });
+    }, 2500);
+  };
+  
   const handleMediaUpload = (file: File | null) => {
     if (generatedVideoUrl && generatedVideoUrl.startsWith('blob:')) {
       URL.revokeObjectURL(generatedVideoUrl);
     }
     
     setMediaFile(file);
+    setAnalyzedTags([]);
     
-    if (file && videoGenerated) {
-      try {
-        const newUrl = URL.createObjectURL(file);
-        setGeneratedVideoUrl(newUrl);
-      } catch (err) {
-        console.error("Error creating object URL:", err);
-        toast.error("Failed to process uploaded media");
+    if (file) {
+      analyzeMediaContent(file);
+      
+      if (videoGenerated) {
+        try {
+          if (file.type.startsWith('video/')) {
+            const newUrl = URL.createObjectURL(file);
+            setGeneratedVideoUrl(newUrl);
+          }
+        } catch (err) {
+          console.error("Error creating object URL:", err);
+          toast.error("Failed to process uploaded media");
+        }
       }
     }
   };
 
+  const handleStyleChange = (style: string) => {
+    setSelectedStyle(style);
+  };
+  
+  const handleTransitionChange = (transition: string) => {
+    setTransitionEffect(transition);
+  };
+  
+  const handleTextOverlayChange = (enabled: boolean, text?: string) => {
+    setTextOverlay({
+      enabled,
+      text: text || textOverlay.text
+    });
+  };
+  
+  const handleAspectRatioChange = (ratio: string) => {
+    setAspectRatio(ratio);
+  };
+
   const handleGenerate = () => {
-    if (!prompt.trim()) {
-      toast.error("Please enter a prompt to generate your video");
+    if (!prompt.trim() && !mediaFile) {
+      toast.error("Please enter a prompt or upload media to generate your video");
       return;
     }
 
@@ -69,6 +127,7 @@ export const useVideoGeneration = () => {
     setIsGenerating(true);
     setIsPlaying(false);
     
+    // Simulate processing with a timeout
     setTimeout(() => {
       try {
         let videoUrl = "";
@@ -77,6 +136,8 @@ export const useVideoGeneration = () => {
           if (mediaFile.type.startsWith('video/')) {
             videoUrl = URL.createObjectURL(mediaFile);
           } else if (mediaFile.type.startsWith('image/')) {
+            // For images, we'd use a generated video in real implementation
+            // Here we're using sample videos to simulate the output
             videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
           }
         } else {
@@ -86,7 +147,10 @@ export const useVideoGeneration = () => {
         setGeneratedVideoUrl(videoUrl);
         setIsGenerating(false);
         setVideoGenerated(true);
-        toast.success("Your video has been generated successfully!");
+        
+        toast.success("Your video has been generated successfully!", {
+          description: `Created with ${selectedStyle} style${textOverlay.enabled ? ' and text overlay' : ''}`
+        });
       } catch (err) {
         setIsGenerating(false);
         toast.error("Failed to generate video", {
@@ -161,9 +225,19 @@ export const useVideoGeneration = () => {
     mediaFile,
     generatedVideoUrl,
     videoRef,
+    isAnalyzing,
+    analyzedTags,
+    selectedStyle,
+    transitionEffect,
+    textOverlay,
+    aspectRatio,
     handleMediaUpload,
     handleGenerate,
     togglePlayPause,
-    handleDownload
+    handleDownload,
+    handleStyleChange,
+    handleTransitionChange,
+    handleTextOverlayChange,
+    handleAspectRatioChange
   };
 };

@@ -21,6 +21,13 @@ interface EditorTabsProps {
   onMediaUpload: (file: File | null) => void;
   handleGenerate: () => void;
   isGenerating: boolean;
+  isAnalyzing?: boolean;
+  analyzedTags?: string[];
+  aspectRatio?: string;
+  setAspectRatio?: (value: string) => void;
+  onStyleChange?: (style: string) => void;
+  onTransitionChange?: (transition: string) => void;
+  onTextOverlayChange?: (enabled: boolean, text?: string) => void;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -34,7 +41,14 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   setSelectedMusic,
   onMediaUpload,
   handleGenerate,
-  isGenerating
+  isGenerating,
+  isAnalyzing,
+  analyzedTags,
+  aspectRatio,
+  setAspectRatio,
+  onStyleChange,
+  onTransitionChange,
+  onTextOverlayChange
 }) => {
   return (
     <Tabs value={tab} onValueChange={setTab} className="w-full">
@@ -65,7 +79,9 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             prompt={prompt} 
             setPrompt={setPrompt} 
             duration={duration} 
-            setDuration={setDuration} 
+            setDuration={setDuration}
+            aspectRatio={aspectRatio}
+            setAspectRatio={setAspectRatio}
           />
         </TabsContent>
         
@@ -74,11 +90,17 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             onMediaUpload={onMediaUpload}
             selectedMusic={selectedMusic}
             setSelectedMusic={setSelectedMusic}
+            isAnalyzing={isAnalyzing}
+            analyzedTags={analyzedTags}
           />
         </TabsContent>
         
         <TabsContent value="style" className="mt-0">
-          <StyleTab />
+          <StyleTab 
+            onStyleChange={onStyleChange}
+            onTransitionChange={onTransitionChange}
+            onTextOverlayChange={onTextOverlayChange}
+          />
         </TabsContent>
         
         <TabsContent value="settings" className="mt-0">

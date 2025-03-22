@@ -2,22 +2,29 @@
 import React, { useCallback, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Music, FileVideo, Upload, X } from "lucide-react";
+import { Music, FileVideo, ImageIcon, Upload, X, FileImage, ScanLine } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface MediaTabProps {
   onMediaUpload?: (file: File | null) => void;
   selectedMusic: string;
   setSelectedMusic: (genre: string) => void;
+  isAnalyzing?: boolean;
+  analyzedTags?: string[];
 }
 
 const MediaTab: React.FC<MediaTabProps> = ({ 
   onMediaUpload,
   selectedMusic, 
-  setSelectedMusic 
+  setSelectedMusic,
+  isAnalyzing = false,
+  analyzedTags = []
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileType, setFileType] = useState<"image" | "video" | null>(null);
 
   const musicGenres = [
     "Ambient", "Electronic", "Cinematic", 
@@ -46,10 +53,14 @@ const MediaTab: React.FC<MediaTabProps> = ({
   };
 
   const handleFileChange = (file: File) => {
-    // Check if file is a video
-    if (!file.type.startsWith('video/')) {
+    // Check file type
+    if (file.type.startsWith('image/')) {
+      setFileType("image");
+    } else if (file.type.startsWith('video/')) {
+      setFileType("video");
+    } else {
       toast.error("Unsupported file format", {
-        description: "Please upload a video file (MP4, WebM, MOV, etc.)"
+        description: "Please upload an image (JPG, PNG, etc.) or video file (MP4, WebM, MOV, etc.)"
       });
       return;
     }
@@ -64,11 +75,12 @@ const MediaTab: React.FC<MediaTabProps> = ({
     
     setUploadedFile(file);
     onMediaUpload && onMediaUpload(file);
-    toast.success("Media uploaded successfully!");
+    toast.success(`${fileType === "image" ? "Image" : "Video"} uploaded successfully!`);
   };
 
   const handleRemoveFile = () => {
     setUploadedFile(null);
+    setFileType(null);
     onMediaUpload && onMediaUpload(null);
   };
 
@@ -101,19 +113,41 @@ const MediaTab: React.FC<MediaTabProps> = ({
                   Drag and drop your media here or click to browse
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Supported formats: MP4, WebM, MOV, AVI (max 100MB)
+                  Supported formats: JPG, PNG, MP4, WebM, MOV, AVI (max 100MB)
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => document.getElementById("file-upload")?.click()}
-                >
-                  <FileVideo className="h-4 w-4 mr-2" />
-                  Select Video
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const input = document.getElementById("image-upload");
+                      if (input) input.click();
+                    }}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Select Image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const input = document.getElementById("video-upload");
+                      if (input) input.click();
+                    }}
+                  >
+                    <FileVideo className="h-4 w-4 mr-2" />
+                    Select Video
+                  </Button>
+                </div>
                 <input
-                  id="file-upload"
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileInput}
+                />
+                <input
+                  id="video-upload"
                   type="file"
                   accept="video/*"
                   className="hidden"
@@ -126,12 +160,16 @@ const MediaTab: React.FC<MediaTabProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-md bg-primary/10">
-                    <FileVideo className="h-5 w-5 text-primary" />
+                    {fileType === "image" ? (
+                      <FileImage className="h-5 w-5 text-primary" />
+                    ) : (
+                      <FileVideo className="h-5 w-5 text-primary" />
+                    )}
                   </div>
                   <div className="overflow-hidden">
                     <p className="font-medium truncate">{uploadedFile.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB
+                      {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB - {fileType === "image" ? "Image" : "Video"}
                     </p>
                   </div>
                 </div>
@@ -144,6 +182,29 @@ const MediaTab: React.FC<MediaTabProps> = ({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+
+              {isAnalyzing && (
+                <div className="mt-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ScanLine className="h-4 w-4 animate-pulse text-primary" />
+                    <span className="text-sm font-medium">Analyzing content...</span>
+                  </div>
+                  <Progress value={65} className="h-2" />
+                </div>
+              )}
+
+              {analyzedTags && analyzedTags.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium mb-2">Detected content:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analyzedTags.map((tag, index) => (
+                      <Badge key={index} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

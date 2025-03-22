@@ -2,7 +2,7 @@
 import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import VideoEditor from "@/components/VideoEditor";
+import VideoEditor from "@/components/video-editor";
 
 const VideoCreator = () => {
   return (

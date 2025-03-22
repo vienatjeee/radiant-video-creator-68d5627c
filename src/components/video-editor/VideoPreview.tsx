@@ -1,7 +1,9 @@
 
-import React from "react";
-import { Download, Pause, Play, Video } from "lucide-react";
+import React, { useState } from "react";
+import { Download, Pause, Play, Video, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface VideoPreviewProps {
   videoGenerated: boolean;
@@ -22,6 +24,42 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   togglePlayPause,
   handleDownload,
 }) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const target = e.target as HTMLVideoElement;
+    setError(`Failed to load video: ${target.error?.message || 'Unknown error'}`);
+    toast.error("Video playback error", {
+      description: "There was a problem playing your video."
+    });
+  };
+
+  const handleVideoLoading = () => {
+    setIsLoading(true);
+    setError(null);
+  };
+
+  const handleVideoLoaded = () => {
+    setIsLoading(false);
+    setError(null);
+  };
+
+  const retryVideoLoad = () => {
+    if (!videoRef.current) return;
+    
+    setError(null);
+    // Reset the video source to trigger a reload
+    const currentSrc = videoRef.current.src;
+    videoRef.current.src = "";
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.src = currentSrc;
+        videoRef.current.load();
+      }
+    }, 100);
+  };
+
   return (
     <div className="flex-1 bg-black/5 backdrop-blur-sm rounded-2xl border border-border overflow-hidden flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between">
@@ -34,7 +72,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
               Download
             </Button>
           )}
-          {videoGenerated && (
+          {videoGenerated && !error && (
             <Button variant="outline" size="sm" onClick={togglePlayPause}>
               {isPlaying ? (
                 <><Pause className="h-4 w-4 mr-2" />Pause</>
@@ -43,20 +81,54 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
               )}
             </Button>
           )}
+          {error && (
+            <Button variant="outline" size="sm" onClick={retryVideoLoad}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          )}
         </div>
       </div>
       
       <div className="relative flex-1 flex items-center justify-center bg-black/90">
         {videoGenerated ? (
-          <video 
-            ref={videoRef}
-            src={generatedVideoUrl}
-            className="w-full h-full object-contain"
-            controls={false}
-            onEnded={() => isPlaying && togglePlayPause()}
-            onPause={() => isPlaying && togglePlayPause()}
-            onPlay={() => !isPlaying && togglePlayPause()}
-          />
+          <>
+            <video 
+              ref={videoRef}
+              src={generatedVideoUrl}
+              className={`w-full h-full object-contain ${error ? 'hidden' : ''}`}
+              controls={false}
+              onError={handleVideoError}
+              onLoadStart={handleVideoLoading}
+              onLoadedData={handleVideoLoaded}
+              onEnded={() => isPlaying && togglePlayPause()}
+              onPause={() => isPlaying && togglePlayPause()}
+              onPlay={() => !isPlaying && togglePlayPause()}
+            />
+            
+            {error && (
+              <div className="text-center p-6">
+                <Alert variant="destructive" className="max-w-md mx-auto bg-destructive/10 border border-destructive">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  <AlertDescription className="mt-2">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+                <p className="text-white/70 mt-4">
+                  Try refreshing or using a different video format.
+                </p>
+              </div>
+            )}
+
+            {isLoading && !error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="loader h-10 w-10 border-[3px]" />
+                  <p className="text-white/70 text-sm">Loading video...</p>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center p-6">
             <div className="flex flex-col items-center justify-center gap-4">

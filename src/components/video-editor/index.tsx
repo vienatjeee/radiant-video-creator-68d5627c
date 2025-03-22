@@ -35,10 +35,15 @@ const VideoEditor = () => {
     handleTransitionChange,
     handleTextOverlayChange,
     handleAspectRatioChange,
-    // New frame generation properties
+    // Frame generation properties
     isGeneratingFrames,
     generatedFrames,
-    generateFrames
+    generateFrames,
+    // New auto-generate features
+    autoGenerateFrames,
+    toggleAutoGenerateFrames,
+    frameGenerationSettings,
+    updateFrameGenerationSettings
   } = useVideoGeneration();
   
   // Check if the Replicate API key is configured
@@ -87,10 +92,15 @@ const VideoEditor = () => {
           onStyleChange={handleStyleChange}
           onTransitionChange={handleTransitionChange}
           onTextOverlayChange={handleTextOverlayChange}
-          // Add frame generation props
+          // Frame generation props
           isGeneratingFrames={isGeneratingFrames}
           generatedFrames={generatedFrames}
           generateFrames={generateFrames}
+          // New auto-generate features
+          autoGenerateFrames={autoGenerateFrames}
+          toggleAutoGenerateFrames={toggleAutoGenerateFrames}
+          frameGenerationSettings={frameGenerationSettings}
+          updateFrameGenerationSettings={updateFrameGenerationSettings}
         />
       </div>
       

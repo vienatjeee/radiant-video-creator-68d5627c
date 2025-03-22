@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export const useVideoGeneration = () => {
   const [prompt, setPrompt] = useState("");
@@ -20,9 +19,13 @@ export const useVideoGeneration = () => {
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // New states for AI frame generation
   const [isGeneratingFrames, setIsGeneratingFrames] = useState(false);
   const [generatedFrames, setGeneratedFrames] = useState<string[]>([]);
+  const [autoGenerateFrames, setAutoGenerateFrames] = useState(false);
+  const [frameGenerationSettings, setFrameGenerationSettings] = useState({
+    variationStrength: 0.3,
+    autoImprove: true
+  });
 
   const sampleVideos = [
     "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
@@ -48,20 +51,33 @@ export const useVideoGeneration = () => {
     };
   }, [generatedVideoUrl]);
   
+  useEffect(() => {
+    if (autoGenerateFrames && prompt.trim().length > 10 && !isGeneratingFrames) {
+      const debounceTimer = setTimeout(() => {
+        generateFrames({
+          prompt,
+          numberOfFrames: 3,
+          style: selectedStyle,
+          variationStrength: frameGenerationSettings.variationStrength,
+          autoImprove: frameGenerationSettings.autoImprove
+        });
+      }, 1000);
+      
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [prompt, autoGenerateFrames, selectedStyle]);
+  
   const analyzeMediaContent = async (file: File) => {
     if (!file) return;
     
     setIsAnalyzing(true);
     
-    // Simulate AI analysis
     setTimeout(() => {
       let fakeTags: string[] = [];
       
       if (file.type.startsWith('image/')) {
-        // Fake image analysis results
         fakeTags = ["person", "landscape", "nature", "outdoor", "daytime"];
       } else if (file.type.startsWith('video/')) {
-        // Fake video analysis results
         fakeTags = ["motion", "urban", "people", "vehicle", "building"];
       }
       
@@ -71,6 +87,15 @@ export const useVideoGeneration = () => {
       toast.success("Content analysis complete", {
         description: "We've detected key elements in your media that will be enhanced in the generated video."
       });
+      
+      if (autoGenerateFrames) {
+        const tagsPrompt = fakeTags.join(", ");
+        generateFrames({
+          prompt: `Scene with ${tagsPrompt}`,
+          numberOfFrames: 3,
+          style: selectedStyle
+        });
+      }
     }, 2500);
   };
   
@@ -101,6 +126,16 @@ export const useVideoGeneration = () => {
 
   const handleStyleChange = (style: string) => {
     setSelectedStyle(style);
+    
+    if (autoGenerateFrames && prompt.trim() && generatedFrames.length > 0) {
+      generateFrames({
+        prompt,
+        numberOfFrames: 3,
+        style,
+        variationStrength: frameGenerationSettings.variationStrength,
+        autoImprove: frameGenerationSettings.autoImprove
+      });
+    }
   };
   
   const handleTransitionChange = (transition: string) => {
@@ -117,15 +152,52 @@ export const useVideoGeneration = () => {
   const handleAspectRatioChange = (ratio: string) => {
     setAspectRatio(ratio);
   };
+  
+  const toggleAutoGenerateFrames = (value: boolean) => {
+    setAutoGenerateFrames(value);
+    if (value && prompt.trim().length > 10) {
+      generateFrames({
+        prompt,
+        numberOfFrames: 3,
+        style: selectedStyle
+      });
+    }
+  };
+  
+  const updateFrameGenerationSettings = (settings: {
+    variationStrength?: number;
+    autoImprove?: boolean;
+  }) => {
+    setFrameGenerationSettings(prev => ({
+      ...prev,
+      ...settings
+    }));
+  };
 
-  // New function to generate AI frames
-  const generateFrames = async ({ prompt, numberOfFrames, style }: { prompt: string; numberOfFrames: number; style: string }) => {
+  const generateFrames = async ({ 
+    prompt, 
+    numberOfFrames, 
+    style,
+    variationStrength,
+    autoImprove
+  }: { 
+    prompt: string; 
+    numberOfFrames: number; 
+    style: string;
+    variationStrength?: number;
+    autoImprove?: boolean;
+  }) => {
     try {
       setIsGeneratingFrames(true);
       
-      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('generate-video-frames', {
-        body: { prompt, numberOfFrames, style }
+        body: { 
+          prompt, 
+          numberOfFrames, 
+          style,
+          variationStrength,
+          autoImprove
+        }
       });
       
       if (error) {
@@ -137,8 +209,10 @@ export const useVideoGeneration = () => {
       }
       
       setGeneratedFrames(data.frames);
-      toast.success(`Generated ${data.frames.length} video frames`, {
-        description: "You can now use these frames in your video"
+      
+      const autoImprovedText = data.metadata?.autoImproved ? " with auto-improvements" : "";
+      toast.success(`Generated ${data.frames.length} video frames${autoImprovedText}`, {
+        description: "These frames will be used in your video"
       });
       
       return data.frames;
@@ -166,7 +240,21 @@ export const useVideoGeneration = () => {
     setIsGenerating(true);
     setIsPlaying(false);
     
-    // Simulate processing with a timeout
+    if (generatedFrames.length > 0 && generatedFrames.length < 5 && autoGenerateFrames) {
+      const neededFrames = 5 - generatedFrames.length;
+      toast.info(`Generating ${neededFrames} additional frames to complete your video`, {
+        description: "This will ensure smooth transitions in your video"
+      });
+      
+      generateFrames({
+        prompt,
+        numberOfFrames: neededFrames,
+        style: selectedStyle
+      }).catch(err => {
+        console.error("Error generating additional frames:", err);
+      });
+    }
+    
     setTimeout(() => {
       try {
         let videoUrl = "";
@@ -175,8 +263,6 @@ export const useVideoGeneration = () => {
           if (mediaFile.type.startsWith('video/')) {
             videoUrl = URL.createObjectURL(mediaFile);
           } else if (mediaFile.type.startsWith('image/')) {
-            // For images, we'd use a generated video in real implementation
-            // Here we're using sample videos to simulate the output
             videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
           }
         } else {
@@ -188,7 +274,7 @@ export const useVideoGeneration = () => {
         setVideoGenerated(true);
         
         const sourceDescription = generatedFrames.length > 0 
-          ? "AI-generated frames" 
+          ? `${generatedFrames.length} AI-generated frames` 
           : mediaFile 
             ? "uploaded media" 
             : "your prompt";
@@ -284,9 +370,12 @@ export const useVideoGeneration = () => {
     handleTransitionChange,
     handleTextOverlayChange,
     handleAspectRatioChange,
-    // New frame generation properties
     isGeneratingFrames,
     generatedFrames,
-    generateFrames
+    generateFrames,
+    autoGenerateFrames,
+    toggleAutoGenerateFrames,
+    frameGenerationSettings,
+    updateFrameGenerationSettings
   };
 };

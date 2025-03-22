@@ -13,6 +13,8 @@ interface GenerateFramesParams {
   numberOfFrames: number;
   style?: string;
   checkConfig?: boolean;
+  variationStrength?: number;
+  autoImprove?: boolean;
 }
 
 serve(async (req) => {
@@ -42,7 +44,7 @@ serve(async (req) => {
       );
     }
 
-    const { prompt, numberOfFrames, style } = params;
+    const { prompt, numberOfFrames, style, variationStrength = 0.3, autoImprove = true } = params;
     
     if (!prompt || !numberOfFrames) {
       return new Response(
@@ -71,30 +73,55 @@ serve(async (req) => {
       auth: replicateApiKey,
     });
 
-    const enhancedPrompt = style 
-      ? `${prompt}, in ${style} style, high quality, suitable as a video frame`
-      : `${prompt}, high quality, suitable as a video frame`;
-
-    console.log(`Generating frames with prompt: ${enhancedPrompt}`);
-
     // Initialize array to store generated images
     const frames: string[] = [];
+    let previousPrompt = "";
 
     // Generate requested number of frames
     for (let i = 0; i < numberOfFrames; i++) {
       try {
         console.log(`Generating frame ${i+1}/${numberOfFrames}`);
         
+        // Apply style if provided
+        const stylePrompt = style 
+          ? `${prompt}, in ${style} style, high quality, suitable as a video frame`
+          : `${prompt}, high quality, suitable as a video frame`;
+        
+        // Create variation for each frame
+        let framePrompt = stylePrompt;
+        
+        // For frames after the first one, add some variation
+        if (i > 0) {
+          // Add frame-specific guidance for small variations between frames
+          framePrompt = `${stylePrompt} ${i > 0 ? `, slight variation from previous frame, frame ${i+1}` : ''}`;
+          
+          // Every 3rd frame, add a stronger variation to create more interest
+          if (i % 3 === 0) {
+            framePrompt += ", different angle";
+          }
+          
+          previousPrompt = framePrompt;
+        } else {
+          previousPrompt = stylePrompt;
+        }
+        
+        // Auto-improve option adds additional quality enhancement prompts
+        if (autoImprove) {
+          framePrompt += ", masterpiece, detailed, crisp focus, cinematic lighting";
+        }
+        
+        console.log(`Frame ${i+1} prompt: ${framePrompt}`);
+        
         const output = await replicate.run(
           "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
           {
             input: {
-              prompt: `${enhancedPrompt} ${i > 0 ? `, slight variation from previous frame, frame ${i+1}` : ''}`,
+              prompt: framePrompt,
               width: 1024,
               height: 576,
               num_outputs: 1,
               scheduler: "K_EULER",
-              num_inference_steps: 25,
+              num_inference_steps: autoImprove ? 30 : 25, // More steps for better quality if auto-improve is on
               guidance_scale: 7.5,
               refine: "expert_ensemble_refiner",
               apply_watermark: false,
@@ -118,7 +145,15 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ frames }),
+      JSON.stringify({ 
+        frames,
+        metadata: {
+          prompt,
+          style,
+          totalFrames: frames.length,
+          autoImproved: autoImprove
+        }
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

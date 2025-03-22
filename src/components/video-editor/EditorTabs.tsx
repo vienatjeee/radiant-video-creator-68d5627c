@@ -28,10 +28,27 @@ interface EditorTabsProps {
   onStyleChange: (style: string) => void;
   onTransitionChange: (transition: string) => void;
   onTextOverlayChange: (enabled: boolean, text?: string) => void;
-  // Add props for frame generation
+  // Frame generation props
   isGeneratingFrames?: boolean;
   generatedFrames?: string[];
-  generateFrames?: (params: { prompt: string; numberOfFrames: number; style: string }) => Promise<void>;
+  generateFrames?: (params: { 
+    prompt: string; 
+    numberOfFrames: number; 
+    style: string;
+    variationStrength?: number;
+    autoImprove?: boolean;
+  }) => Promise<void>;
+  // New auto-generate features
+  autoGenerateFrames?: boolean;
+  toggleAutoGenerateFrames?: (value: boolean) => void;
+  frameGenerationSettings?: {
+    variationStrength: number;
+    autoImprove: boolean;
+  };
+  updateFrameGenerationSettings?: (settings: {
+    variationStrength?: number;
+    autoImprove?: boolean;
+  }) => void;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -53,10 +70,18 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   onStyleChange,
   onTransitionChange,
   onTextOverlayChange,
-  // New props
+  // Frame generation props
   isGeneratingFrames = false,
   generatedFrames = [],
-  generateFrames
+  generateFrames,
+  // New auto-generate features
+  autoGenerateFrames = false,
+  toggleAutoGenerateFrames = () => {},
+  frameGenerationSettings = {
+    variationStrength: 0.3,
+    autoImprove: true
+  },
+  updateFrameGenerationSettings = () => {}
 }) => {
   return (
     <>
@@ -109,7 +134,11 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
               onGenerateFrames={generateFrames}
               isGeneratingFrames={isGeneratingFrames}
               generatedFrames={generatedFrames}
-              selectedStyle={tab === "style" ? "Vibrant" : ""}
+              selectedStyle={selectedStyle}
+              autoGenerateFrames={autoGenerateFrames}
+              toggleAutoGenerateFrames={toggleAutoGenerateFrames}
+              frameGenerationSettings={frameGenerationSettings}
+              updateFrameGenerationSettings={updateFrameGenerationSettings}
             />
           )}
         </TabsContent>

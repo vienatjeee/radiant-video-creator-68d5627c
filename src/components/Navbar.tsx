@@ -3,11 +3,13 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -41,15 +43,34 @@ const Navbar = () => {
         </nav>
         
         <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" className="hidden md:flex">
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button asChild className="hidden md:flex group">
-            <Link to="/video">
-              Get Started
-              <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Button>
+          {user ? (
+            <>
+              <p className="hidden md:block text-sm font-medium">
+                Welcome, {user.name}
+              </p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hidden md:flex gap-1" 
+                onClick={logout}
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost" className="hidden md:flex">
+                <Link to="/sign-in">Sign in</Link>
+              </Button>
+              <Button asChild className="hidden md:flex group">
+                <Link to="/sign-up">
+                  Get Started
+                  <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 

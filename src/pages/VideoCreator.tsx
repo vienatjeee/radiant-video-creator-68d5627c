@@ -5,10 +5,14 @@ import Footer from "@/components/Footer";
 import VideoEditor from "@/components/video-editor";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Heart, DollarSign, Coffee } from "lucide-react";
+import { ExternalLink, Heart, DollarSign, Coffee, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const VideoCreator = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const handleDonation = () => {
     window.open("https://www.paypal.com/ncp/payment/BBRQQNZ3Q4S9J", "_blank");
     toast.success("Thank you for your donation!", {
@@ -32,6 +36,12 @@ const VideoCreator = () => {
               </div>
               
               <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <Button variant="outline" className="gap-2">
+                    <ShieldAlert className="h-4 w-4 text-yellow-500" />
+                    Admin Mode
+                  </Button>
+                )}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="gap-2">
@@ -71,18 +81,20 @@ const VideoCreator = () => {
               </div>
             </div>
             
-            <div className="bg-accent/20 border border-border rounded-md p-4 mb-8">
-              <div className="flex items-start gap-3">
-                <div className="rounded-full bg-secondary w-8 h-8 text-secondary-foreground flex items-center justify-center font-semibold">VW</div>
-                <div>
-                  <p className="font-medium">Vienna Wierks</p>
-                  <p className="text-sm text-muted-foreground">Admin & Creator</p>
-                  <p className="text-sm mt-2">
-                    Thank you for using this application! If you find it useful, please consider supporting the project with a donation.
-                  </p>
+            {isAdmin ? (
+              <div className="bg-accent/20 border border-border rounded-md p-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-secondary w-8 h-8 text-secondary-foreground flex items-center justify-center font-semibold">VW</div>
+                  <div>
+                    <p className="font-medium">Vienna Wierks</p>
+                    <p className="text-sm text-muted-foreground">Admin & Creator</p>
+                    <p className="text-sm mt-2">
+                      Thank you for using this application! If you find it useful, please consider supporting the project with a donation.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </div>
           
           <div className="h-[700px]">

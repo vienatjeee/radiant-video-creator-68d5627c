@@ -7,6 +7,7 @@ interface User {
   email: string;
   name: string;
   role: 'user' | 'admin';
+  subscription: 'free' | 'pro' | 'enterprise';
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  updateSubscription: (tier: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,7 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: '1',
             email: 'vienna@example.com',
             name: 'Vienna Wierks',
-            role: 'admin'
+            role: 'admin',
+            subscription: 'enterprise'
           };
         } else {
           // Regular user
@@ -67,7 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: Date.now().toString(),
             email,
             name: email.split('@')[0],
-            role: 'user'
+            role: 'user',
+            subscription: 'free'
           };
         }
         
@@ -120,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           name,
           role: 'user',
+          subscription: 'free',
         };
         localStorage.setItem('user', JSON.stringify(newUser));
         setUser(newUser);
@@ -139,6 +144,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateSubscription = (tier: string) => {
+    if (!user) return;
+    
+    const validTiers = ['free', 'pro', 'enterprise'];
+    if (!validTiers.includes(tier)) {
+      console.error('Invalid subscription tier:', tier);
+      return;
+    }
+    
+    // Update the user object with the new subscription
+    const updatedUser = {
+      ...user,
+      subscription: tier as 'free' | 'pro' | 'enterprise'
+    };
+    
+    // Update localStorage and state
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const logout = () => {
     localStorage.removeItem('user');
     setUser(null);
@@ -146,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, updateSubscription }}>
       {children}
     </AuthContext.Provider>
   );

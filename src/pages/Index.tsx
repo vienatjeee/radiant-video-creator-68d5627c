@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
 import FeatureSection from "@/components/FeatureSection";
+import PricingSection from "@/components/PricingSection";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, CheckCircle2, Video, Music, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -84,6 +85,9 @@ const Index = () => {
             </div>
           </div>
         </section>
+        
+        {/* Add the new pricing section here */}
+        <PricingSection />
         
         {/* CTA Section */}
         <section className="section-padding px-6 bg-background">

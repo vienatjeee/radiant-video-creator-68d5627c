@@ -1,7 +1,5 @@
-
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import VideoControls from "./VideoControls";
 import VideoPreview from "./VideoPreview";
 import PromptTab from "./tabs/PromptTab";
 import MediaTab from "./tabs/MediaTab";
@@ -18,6 +16,8 @@ const VideoEditor = () => {
   const [videoGenerated, setVideoGenerated] = useState(false);
   const [duration, setDuration] = useState(15);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState("Ambient");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Sample video URLs for demo purposes
@@ -29,6 +29,10 @@ const VideoEditor = () => {
   
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState("");
   
+  const handleMediaUpload = useCallback((file: File | null) => {
+    setMediaFile(file);
+  }, []);
+
   const handleGenerate = () => {
     if (!prompt.trim()) {
       toast.error("Please enter a prompt to generate your video");
@@ -37,11 +41,19 @@ const VideoEditor = () => {
 
     setIsGenerating(true);
     
-    // Simulate video generation
+    // Simulate video generation with the media file if available
     setTimeout(() => {
-      // Select a random sample video for demonstration
-      const randomVideo = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
-      setGeneratedVideoUrl(randomVideo);
+      let videoUrl = "";
+      
+      if (mediaFile && mediaFile.type.startsWith('video/')) {
+        // If a video was uploaded, use that
+        videoUrl = URL.createObjectURL(mediaFile);
+      } else {
+        // Otherwise, use a sample video
+        videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+      }
+      
+      setGeneratedVideoUrl(videoUrl);
       setIsGenerating(false);
       setVideoGenerated(true);
       toast.success("Your video has been generated successfully!");
@@ -111,7 +123,11 @@ const VideoEditor = () => {
             </TabsContent>
             
             <TabsContent value="media" className="mt-0">
-              <MediaTab />
+              <MediaTab 
+                onMediaUpload={handleMediaUpload}
+                selectedMusic={selectedMusic}
+                setSelectedMusic={setSelectedMusic}
+              />
             </TabsContent>
             
             <TabsContent value="style" className="mt-0">

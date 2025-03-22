@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import TransitionLayout from "./components/TransitionLayout";
 import Index from "./pages/Index";
 import VideoCreator from "./pages/VideoCreator";
+import Gallery from "./pages/Gallery";
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -38,6 +39,14 @@ const App = () => (
                   <ProtectedRoute>
                     <VideoCreator />
                   </ProtectedRoute>
+                </TransitionLayout>
+              }
+            />
+            <Route
+              path="/gallery"
+              element={
+                <TransitionLayout>
+                  <Gallery />
                 </TransitionLayout>
               }
             />

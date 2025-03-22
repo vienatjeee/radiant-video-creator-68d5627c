@@ -3,6 +3,14 @@ import { User, Zap, Shield } from "lucide-react";
 import { PricingPlan } from "./PricingCard";
 import React from "react";
 
+// Define the owner information
+export const owner = {
+  name: "vienatjeee",
+  role: "Creator & Developer",
+  email: "vienatjeee@example.com",
+  github: "https://github.com/vienatjeee"
+};
+
 // Define the pricing plans
 export const pricingPlans: PricingPlan[] = [
   {

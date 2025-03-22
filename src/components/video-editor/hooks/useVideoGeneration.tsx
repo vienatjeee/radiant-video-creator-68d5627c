@@ -19,6 +19,10 @@ export const useVideoGeneration = () => {
   const [textOverlay, setTextOverlay] = useState({ enabled: false, text: "" });
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // New states for AI frame generation
+  const [isGeneratingFrames, setIsGeneratingFrames] = useState(false);
+  const [generatedFrames, setGeneratedFrames] = useState<string[]>([]);
 
   const sampleVideos = [
     "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
@@ -114,9 +118,44 @@ export const useVideoGeneration = () => {
     setAspectRatio(ratio);
   };
 
+  // New function to generate AI frames
+  const generateFrames = async ({ prompt, numberOfFrames, style }: { prompt: string; numberOfFrames: number; style: string }) => {
+    try {
+      setIsGeneratingFrames(true);
+      
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generate-video-frames', {
+        body: { prompt, numberOfFrames, style }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (!data.frames || !Array.isArray(data.frames)) {
+        throw new Error("Invalid response format from frame generator");
+      }
+      
+      setGeneratedFrames(data.frames);
+      toast.success(`Generated ${data.frames.length} video frames`, {
+        description: "You can now use these frames in your video"
+      });
+      
+      return data.frames;
+    } catch (error) {
+      console.error("Error generating frames:", error);
+      toast.error("Failed to generate video frames", {
+        description: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+      throw error;
+    } finally {
+      setIsGeneratingFrames(false);
+    }
+  };
+
   const handleGenerate = () => {
-    if (!prompt.trim() && !mediaFile) {
-      toast.error("Please enter a prompt or upload media to generate your video");
+    if (!prompt.trim() && !mediaFile && generatedFrames.length === 0) {
+      toast.error("Please enter a prompt, upload media, or generate frames first");
       return;
     }
 
@@ -148,8 +187,14 @@ export const useVideoGeneration = () => {
         setIsGenerating(false);
         setVideoGenerated(true);
         
+        const sourceDescription = generatedFrames.length > 0 
+          ? "AI-generated frames" 
+          : mediaFile 
+            ? "uploaded media" 
+            : "your prompt";
+        
         toast.success("Your video has been generated successfully!", {
-          description: `Created with ${selectedStyle} style${textOverlay.enabled ? ' and text overlay' : ''}`
+          description: `Created with ${selectedStyle} style using ${sourceDescription}`
         });
       } catch (err) {
         setIsGenerating(false);
@@ -238,6 +283,10 @@ export const useVideoGeneration = () => {
     handleStyleChange,
     handleTransitionChange,
     handleTextOverlayChange,
-    handleAspectRatioChange
+    handleAspectRatioChange,
+    // New frame generation properties
+    isGeneratingFrames,
+    generatedFrames,
+    generateFrames
   };
 };

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import VideoPreview from "./VideoPreview";
 import EditorTabs from "./EditorTabs";
 import { useVideoGeneration } from "./hooks/useVideoGeneration";
+import { toast } from "sonner";
 
 const VideoEditor = () => {
   const [tab, setTab] = useState("prompt");
@@ -32,8 +33,36 @@ const VideoEditor = () => {
     handleStyleChange,
     handleTransitionChange,
     handleTextOverlayChange,
-    handleAspectRatioChange
+    handleAspectRatioChange,
+    // New frame generation properties
+    isGeneratingFrames,
+    generatedFrames,
+    generateFrames
   } = useVideoGeneration();
+  
+  // Check if the OpenAI API key is configured
+  const checkApiKeyConfiguration = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-video-frames', {
+        body: { checkConfig: true }
+      });
+      
+      if (error || (data && data.error)) {
+        console.warn("API Key configuration issue:", error || data.error);
+        toast.warning("OpenAI API key may not be configured", {
+          description: "Frame generation might not work correctly. Contact the administrator.",
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      console.error("Configuration check error:", err);
+    }
+  };
+  
+  React.useEffect(() => {
+    // Check API key configuration on component mount
+    checkApiKeyConfiguration();
+  }, []);
   
   return (
     <div className="flex flex-col lg:flex-row h-full w-full gap-6">
@@ -57,6 +86,10 @@ const VideoEditor = () => {
           onStyleChange={handleStyleChange}
           onTransitionChange={handleTransitionChange}
           onTextOverlayChange={handleTextOverlayChange}
+          // Add frame generation props
+          isGeneratingFrames={isGeneratingFrames}
+          generatedFrames={generatedFrames}
+          generateFrames={generateFrames}
         />
       </div>
       

@@ -1,33 +1,37 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Image, LayoutGrid, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Wand2 } from "lucide-react";
+import { Sparkles, Upload, Sliders, TextIcon, Film } from "lucide-react";
 import PromptTab from "./tabs/PromptTab";
 import MediaTab from "./tabs/MediaTab";
 import StyleTab from "./tabs/StyleTab";
 import SettingsTab from "./tabs/SettingsTab";
+import FramesTab from "./tabs/FramesTab";
 
 interface EditorTabsProps {
   tab: string;
-  setTab: (value: string) => void;
+  setTab: (tab: string) => void;
   prompt: string;
-  setPrompt: (value: string) => void;
+  setPrompt: (prompt: string) => void;
   duration: number;
-  setDuration: (value: number) => void;
+  setDuration: (duration: number) => void;
   selectedMusic: string;
-  setSelectedMusic: (value: string) => void;
+  setSelectedMusic: (music: string) => void;
   onMediaUpload: (file: File | null) => void;
   handleGenerate: () => void;
   isGenerating: boolean;
   isAnalyzing?: boolean;
   analyzedTags?: string[];
-  aspectRatio?: string;
-  setAspectRatio?: (value: string) => void;
-  onStyleChange?: (style: string) => void;
-  onTransitionChange?: (transition: string) => void;
-  onTextOverlayChange?: (enabled: boolean, text?: string) => void;
+  aspectRatio: string;
+  setAspectRatio: (ratio: string) => void;
+  onStyleChange: (style: string) => void;
+  onTransitionChange: (transition: string) => void;
+  onTextOverlayChange: (enabled: boolean, text?: string) => void;
+  // Add props for frame generation
+  isGeneratingFrames?: boolean;
+  generatedFrames?: string[];
+  generateFrames?: (params: { prompt: string; numberOfFrames: number; style: string }) => Promise<void>;
 }
 
 const EditorTabs: React.FC<EditorTabsProps> = ({
@@ -42,50 +46,54 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
   onMediaUpload,
   handleGenerate,
   isGenerating,
-  isAnalyzing,
-  analyzedTags,
+  isAnalyzing = false,
+  analyzedTags = [],
   aspectRatio,
   setAspectRatio,
   onStyleChange,
   onTransitionChange,
-  onTextOverlayChange
+  onTextOverlayChange,
+  // New props
+  isGeneratingFrames = false,
+  generatedFrames = [],
+  generateFrames
 }) => {
   return (
-    <Tabs value={tab} onValueChange={setTab} className="w-full">
-      <div className="p-4 border-b border-border">
-        <TabsList className="w-full grid grid-cols-4">
-          <TabsTrigger value="prompt" className="rounded-lg">
-            <Sparkles className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Prompt</span>
+    <>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        <TabsList className="grid grid-cols-5 mb-4">
+          <TabsTrigger value="prompt" className="flex flex-col py-2 h-auto">
+            <Sparkles className="h-4 w-4 mb-1" />
+            <span className="text-xs">Prompt</span>
           </TabsTrigger>
-          <TabsTrigger value="media" className="rounded-lg">
-            <Image className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Media</span>
+          <TabsTrigger value="media" className="flex flex-col py-2 h-auto">
+            <Upload className="h-4 w-4 mb-1" />
+            <span className="text-xs">Media</span>
           </TabsTrigger>
-          <TabsTrigger value="style" className="rounded-lg">
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Style</span>
+          <TabsTrigger value="frames" className="flex flex-col py-2 h-auto">
+            <Film className="h-4 w-4 mb-1" />
+            <span className="text-xs">Frames</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="rounded-lg">
-            <Settings className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Settings</span>
+          <TabsTrigger value="style" className="flex flex-col py-2 h-auto">
+            <TextIcon className="h-4 w-4 mb-1" />
+            <span className="text-xs">Style</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex flex-col py-2 h-auto">
+            <Sliders className="h-4 w-4 mb-1" />
+            <span className="text-xs">Settings</span>
           </TabsTrigger>
         </TabsList>
-      </div>
-      
-      <div className="p-4 flex-1 overflow-y-auto">
-        <TabsContent value="prompt" className="mt-0 h-full">
+
+        <TabsContent value="prompt" className="p-4">
           <PromptTab 
             prompt={prompt} 
             setPrompt={setPrompt} 
-            duration={duration} 
+            duration={duration}
             setDuration={setDuration}
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
           />
         </TabsContent>
         
-        <TabsContent value="media" className="mt-0">
+        <TabsContent value="media" className="p-4">
           <MediaTab 
             onMediaUpload={onMediaUpload}
             selectedMusic={selectedMusic}
@@ -94,40 +102,50 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
             analyzedTags={analyzedTags}
           />
         </TabsContent>
+
+        <TabsContent value="frames" className="p-4">
+          {generateFrames && (
+            <FramesTab
+              onGenerateFrames={generateFrames}
+              isGeneratingFrames={isGeneratingFrames}
+              generatedFrames={generatedFrames}
+              selectedStyle={tab === "style" ? "Vibrant" : ""}
+            />
+          )}
+        </TabsContent>
         
-        <TabsContent value="style" className="mt-0">
-          <StyleTab 
+        <TabsContent value="style" className="p-4">
+          <StyleTab
             onStyleChange={onStyleChange}
             onTransitionChange={onTransitionChange}
             onTextOverlayChange={onTextOverlayChange}
           />
         </TabsContent>
         
-        <TabsContent value="settings" className="mt-0">
-          <SettingsTab />
+        <TabsContent value="settings" className="p-4">
+          <SettingsTab 
+            aspectRatio={aspectRatio}
+            setAspectRatio={setAspectRatio}
+          />
         </TabsContent>
-      </div>
+      </Tabs>
       
-      <div className="p-4 border-t border-border">
+      <div className="p-4 mt-auto border-t">
         <Button 
-          className="w-full group"
           onClick={handleGenerate}
+          className="w-full" 
+          size="lg"
           disabled={isGenerating}
         >
-          {isGenerating ? (
-            <>
-              <span className="loader mr-2 h-5 w-5 border-2 border-current after:border-2 after:border-primary" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Wand2 className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
-              Generate Video
-            </>
-          )}
+          {isGenerating ? "Generating..." : "Generate Video"}
         </Button>
+        <p className="text-xs text-center text-muted-foreground mt-2">
+          {generatedFrames && generatedFrames.length > 0 
+            ? `Using ${generatedFrames.length} AI-generated frames` 
+            : "Generate a video using AI"}
+        </p>
       </div>
-    </Tabs>
+    </>
   );
 };
 

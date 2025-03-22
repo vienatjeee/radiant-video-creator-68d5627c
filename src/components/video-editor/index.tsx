@@ -4,6 +4,7 @@ import VideoPreview from "./VideoPreview";
 import EditorTabs from "./EditorTabs";
 import { useVideoGeneration } from "./hooks/useVideoGeneration";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const VideoEditor = () => {
   const [tab, setTab] = useState("prompt");

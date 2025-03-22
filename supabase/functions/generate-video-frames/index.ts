@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import Replicate from "https://esm.sh/replicate@0.25.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,7 @@ interface GenerateFramesParams {
   prompt: string;
   numberOfFrames: number;
   style?: string;
+  checkConfig?: boolean;
 }
 
 serve(async (req) => {
@@ -20,7 +22,27 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, numberOfFrames, style } = await req.json() as GenerateFramesParams;
+    const params = await req.json() as GenerateFramesParams;
+    
+    // Check API configuration when requested (just testing connectivity)
+    if (params.checkConfig) {
+      const replicateApiKey = Deno.env.get("REPLICATE_API_KEY");
+      if (!replicateApiKey) {
+        return new Response(
+          JSON.stringify({ error: "Replicate API key not configured" }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+      return new Response(
+        JSON.stringify({ status: "Configuration valid" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { prompt, numberOfFrames, style } = params;
     
     if (!prompt || !numberOfFrames) {
       return new Response(
@@ -34,8 +56,8 @@ serve(async (req) => {
       );
     }
 
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIApiKey) {
+    const replicateApiKey = Deno.env.get("REPLICATE_API_KEY");
+    if (!replicateApiKey) {
       return new Response(
         JSON.stringify({ error: "API configuration error" }),
         { 
@@ -45,45 +67,55 @@ serve(async (req) => {
       );
     }
 
-    // For this implementation, we'll generate a single image and simulate multiple frames
-    // In a production environment, you'd generate multiple unique frames
+    const replicate = new Replicate({
+      auth: replicateApiKey,
+    });
+
     const enhancedPrompt = style 
       ? `${prompt}, in ${style} style, high quality, suitable as a video frame`
       : `${prompt}, high quality, suitable as a video frame`;
 
-    console.log(`Generating frame with prompt: ${enhancedPrompt}`);
+    console.log(`Generating frames with prompt: ${enhancedPrompt}`);
 
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: enhancedPrompt,
-        n: 1,
-        size: "1024x1024",
-      }),
-    });
+    // Initialize array to store generated images
+    const frames: string[] = [];
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
-      return new Response(
-        JSON.stringify({ error: "Error generating frames", details: errorData }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    // Generate requested number of frames
+    for (let i = 0; i < numberOfFrames; i++) {
+      try {
+        console.log(`Generating frame ${i+1}/${numberOfFrames}`);
+        
+        const output = await replicate.run(
+          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          {
+            input: {
+              prompt: `${enhancedPrompt} ${i > 0 ? `, slight variation from previous frame, frame ${i+1}` : ''}`,
+              width: 1024,
+              height: 576,
+              num_outputs: 1,
+              scheduler: "K_EULER",
+              num_inference_steps: 25,
+              guidance_scale: 7.5,
+              refine: "expert_ensemble_refiner",
+              apply_watermark: false,
+              high_noise_frac: 0.8,
+              refine_steps: 10,
+            },
+          }
+        );
+        
+        if (Array.isArray(output) && output.length > 0) {
+          frames.push(output[0]);
         }
-      );
+      } catch (err) {
+        console.error(`Error generating frame ${i+1}:`, err);
+        // Continue with other frames even if one fails
+      }
     }
-
-    const data = await response.json();
-    const imageUrl = data.data[0].url;
     
-    // Simulate generating multiple frames by duplicating the image URL
-    const frames = Array(numberOfFrames).fill(imageUrl);
+    if (frames.length === 0) {
+      throw new Error("Failed to generate any valid frames");
+    }
     
     return new Response(
       JSON.stringify({ frames }),

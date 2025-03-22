@@ -134,7 +134,6 @@ const EditorTabs: React.FC<EditorTabsProps> = ({
               onGenerateFrames={generateFrames}
               isGeneratingFrames={isGeneratingFrames}
               generatedFrames={generatedFrames}
-              selectedStyle={selectedStyle}
               autoGenerateFrames={autoGenerateFrames}
               toggleAutoGenerateFrames={toggleAutoGenerateFrames}
               frameGenerationSettings={frameGenerationSettings}

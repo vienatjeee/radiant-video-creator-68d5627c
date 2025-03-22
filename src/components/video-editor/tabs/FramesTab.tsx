@@ -28,7 +28,6 @@ interface FramesTabProps {
   }) => Promise<void>;
   isGeneratingFrames: boolean;
   generatedFrames: string[];
-  selectedStyle: string;
   autoGenerateFrames?: boolean;
   toggleAutoGenerateFrames?: (value: boolean) => void;
   frameGenerationSettings?: {
@@ -45,7 +44,6 @@ const FramesTab: React.FC<FramesTabProps> = ({
   onGenerateFrames,
   isGeneratingFrames,
   generatedFrames,
-  selectedStyle,
   autoGenerateFrames = false,
   toggleAutoGenerateFrames = () => {},
   frameGenerationSettings = {
@@ -58,6 +56,7 @@ const FramesTab: React.FC<FramesTabProps> = ({
   const [numberOfFrames, setNumberOfFrames] = useState(3);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [selectedFrameStyle, setSelectedFrameStyle] = useState("Vibrant");
 
   // Simulate progress during generation
   React.useEffect(() => {
@@ -90,7 +89,7 @@ const FramesTab: React.FC<FramesTabProps> = ({
       await onGenerateFrames({ 
         prompt: framePrompt, 
         numberOfFrames, 
-        style: selectedStyle,
+        style: selectedFrameStyle,
         variationStrength: frameGenerationSettings.variationStrength,
         autoImprove: frameGenerationSettings.autoImprove
       });
